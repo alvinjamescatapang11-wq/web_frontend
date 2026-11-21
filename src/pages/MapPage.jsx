@@ -73,7 +73,8 @@ export default function MapPage() {
     setLoading(true);
     setError('');
     try {
-      const response = await api.get('/api/farms');
+      // The Render free instance can take over 50 seconds to wake after inactivity.
+      const response = await api.get('/api/farms', { timeout: 60000 });
       const farmRecords = response?.data?.data;
       if (!Array.isArray(farmRecords)) {
         throw new Error('Farm locations could not be loaded because the service returned an invalid response.');
