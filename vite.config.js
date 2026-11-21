@@ -7,9 +7,10 @@ const frontendDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, frontendDirectory, '');
+  const isVercel = process.env.VERCEL === '1';
 
   return {
-    base: command === 'serve' ? '/' : '/react/',
+    base: command === 'serve' || isVercel ? '/' : '/react/',
     plugins: [react()],
     server: {
       host: '127.0.0.1',
@@ -26,7 +27,9 @@ export default defineConfig(({ command, mode }) => {
       strictPort: true,
     },
     build: {
-      outDir: path.resolve(frontendDirectory, '../LavaLust/public/react'),
+      outDir: isVercel
+        ? path.resolve(frontendDirectory, 'dist')
+        : path.resolve(frontendDirectory, '../LavaLust/public/react'),
       emptyOutDir: true,
     },
   };
