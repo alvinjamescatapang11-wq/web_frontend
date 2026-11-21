@@ -54,6 +54,8 @@ export function AuthProvider({ children }) {
       if (cachedUser && active) {
         setUser(cachedUser);
         setStatus('authenticated');
+        // The dashboard API validates the token before returning protected data.
+        return;
       }
 
       try {
@@ -62,16 +64,11 @@ export function AuthProvider({ children }) {
           setUser(currentUser);
           setStatus('authenticated');
         }
-      } catch (error) {
+      } catch {
         if (active) {
-          if (cachedUser && authApi.hasToken() && error.response?.status !== 401) {
-            setUser(cachedUser);
-            setStatus('authenticated');
-          } else {
-            authApi.clearToken();
-            setUser(null);
-            setStatus('anonymous');
-          }
+          authApi.clearToken();
+          setUser(null);
+          setStatus('anonymous');
         }
       }
     }
