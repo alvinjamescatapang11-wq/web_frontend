@@ -74,7 +74,11 @@ export default function MapPage() {
     setError('');
     try {
       const response = await api.get('/api/farms');
-      setFarms(response.data.data);
+      const farmRecords = response?.data?.data;
+      if (!Array.isArray(farmRecords)) {
+        throw new Error('Farm locations could not be loaded because the service returned an invalid response.');
+      }
+      setFarms(farmRecords);
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
     } finally {
