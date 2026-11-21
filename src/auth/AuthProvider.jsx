@@ -4,8 +4,16 @@ import { authApi } from '../api/client.js';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [status, setStatus] = useState('loading');
+  const [initialSession] = useState(() => {
+    const hasToken = authApi.hasToken();
+    const user = hasToken ? authApi.getCachedUser() : null;
+    return {
+      user,
+      status: !hasToken ? 'anonymous' : user ? 'authenticated' : 'loading',
+    };
+  });
+  const [user, setUser] = useState(initialSession.user);
+  const [status, setStatus] = useState(initialSession.status);
 
   const signOut = useCallback(async () => {
     try {
@@ -28,6 +36,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    if (user && status === 'authenticated') {
+      authApi.cacheUser(user);
+    }
+  }, [status, user]);
+
+  useEffect(() => {
     let active = true;
 
     async function restoreSession() {
@@ -36,23 +50,35 @@ export function AuthProvider({ children }) {
         return;
       }
 
+      const cachedUser = authApi.getCachedUser();
+      if (cachedUser && active) {
+        setUser(cachedUser);
+        setStatus('authenticated');
+      }
+
       try {
         const currentUser = await authApi.currentUser();
         if (active) {
           setUser(currentUser);
           setStatus('authenticated');
         }
-      } catch {
+      } catch (error) {
         if (active) {
-          authApi.clearToken();
-          setUser(null);
-          setStatus('anonymous');
+          if (cachedUser && authApi.hasToken() && error.response?.status !== 401) {
+            setUser(cachedUser);
+            setStatus('authenticated');
+          } else {
+            authApi.clearToken();
+            setUser(null);
+            setStatus('anonymous');
+          }
         }
       }
     }
 
     const onUnauthorized = () => {
       if (active) {
+        authApi.clearToken();
         setUser(null);
         setStatus('anonymous');
       }

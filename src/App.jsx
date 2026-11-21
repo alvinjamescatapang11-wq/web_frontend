@@ -296,7 +296,7 @@ function MetricCard({ title, value, note, icon: Icon, tone }) {
   );
 }
 
-function ProductionChart({ rows }) {
+function ProductionChart({ rows, loading }) {
   const monthLabels = new Intl.DateTimeFormat('en', { month: 'short' });
   const { chartData, units } = rows.reduce((result, row) => {
     const [year, month] = row.period.split('-').map(Number);
@@ -321,7 +321,12 @@ function ProductionChart({ rows }) {
         <span className="actual-badge"><span /> Actual data</span>
       </div>
       <p className="panel-description">Harvest quantities recorded during the last six months.</p>
-      {chartData.length ? (
+      {loading ? (
+        <div className="chart-empty">
+          <span><Wheat size={23} /></span>
+          <strong>Loading production data…</strong>
+        </div>
+      ) : chartData.length ? (
         <div className="chart-wrap">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 10, right: 4, left: -18, bottom: 0 }}>
@@ -412,16 +417,6 @@ function DashboardPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <main className="dashboard-loading">
-        <span className="loading-spinner" />
-        <strong>Loading your dashboard</strong>
-        <span>Securely retrieving your assigned agricultural data…</span>
-      </main>
-    );
-  }
-
   const metrics = dashboard?.metrics;
   const cards = [
     { title: 'Registered farmers', value: metrics ? metrics.farmers : null, note: 'Active farmer records', icon: Users, tone: 'sage' },
@@ -505,20 +500,25 @@ function DashboardPage() {
             </div>
           )}
 
-          <div className="stats-heading"><div><h2>At a glance</h2><p>Current records in your authorized data scope</p></div><span className="data-live"><span /> Live data</span></div>
+          <div className="stats-heading"><div><h2>At a glance</h2><p>Current records in your authorized data scope</p></div><span className="data-live" role="status" aria-live="polite"><span />{loading && !dashboard ? ' Loading live data' : ' Live data'}</span></div>
           <section className={`stats-grid${isCao ? ' cao-stats' : ''}`} aria-label="Agriculture statistics">
             {cards.map((card) => <MetricCard key={card.title} {...card} />)}
           </section>
 
           <section className="dashboard-lower-grid">
-            <ProductionChart rows={dashboard?.productionTrend || []} />
+            <ProductionChart rows={dashboard?.productionTrend || []} loading={loading && !dashboard} />
             <section className="dashboard-panel activities-panel">
               <div className="panel-title-row">
                 <div><span className="panel-kicker">NEXT 30 DAYS</span><h2>Upcoming activities</h2></div>
                 <span className="activity-count">{dashboard?.upcomingActivities?.length || 0}</span>
               </div>
               <p className="panel-description">Expected maturity and harvest dates from registered plantings.</p>
-              {dashboard?.upcomingActivities?.length ? (
+              {loading && !dashboard ? (
+                <div className="activity-empty">
+                  <span><CalendarDays size={20} /></span>
+                  <strong>Loading upcoming activities…</strong>
+                </div>
+              ) : dashboard?.upcomingActivities?.length ? (
                 <ul className="activity-list">
                   {dashboard.upcomingActivities.map((activity) => (
                     <li key={`${activity.type}-${activity.id}`}>
@@ -581,16 +581,6 @@ function FarmerDashboardPage() {
     } catch (signOutError) {
       toast.error(getApiErrorMessage(signOutError));
     }
-  }
-
-  if (loading) {
-    return (
-      <main className="dashboard-loading">
-        <span className="loading-spinner" />
-        <strong>Loading your farmer dashboard</strong>
-        <span>Retrieving only records linked to your farmer profile…</span>
-      </main>
-    );
   }
 
   const profile = dashboard?.profile;
@@ -677,7 +667,7 @@ function FarmerDashboardPage() {
             </div>
           )}
 
-          <div className="stats-heading"><div><h2>My agricultural records</h2><p>Only records linked to your farmer profile are shown</p></div><span className="data-live"><span /> Private view</span></div>
+          <div className="stats-heading"><div><h2>My agricultural records</h2><p>Only records linked to your farmer profile are shown</p></div><span className="data-live" role="status" aria-live="polite"><span />{loading && !dashboard ? ' Loading records' : ' Private view'}</span></div>
           <section className="stats-grid farmer-stats" aria-label="My agricultural records">
             {metricCards.map((card) => <MetricCard key={card.title} {...card} />)}
           </section>
@@ -699,7 +689,12 @@ function FarmerDashboardPage() {
             <section className="dashboard-panel farmer-activity-panel">
               <div className="panel-title-row"><div><span className="panel-kicker">NEXT 30 DAYS</span><h2>My upcoming activities</h2></div><span className="activity-count">{dashboard?.upcomingActivities?.length || 0}</span></div>
               <p className="panel-description">Planting maturity and harvest dates from your records.</p>
-              {dashboard?.upcomingActivities?.length ? (
+              {loading && !dashboard ? (
+                <div className="activity-empty">
+                  <span><CalendarDays size={20} /></span>
+                  <strong>Loading upcoming activities…</strong>
+                </div>
+              ) : dashboard?.upcomingActivities?.length ? (
                 <ul className="activity-list">
                   {dashboard.upcomingActivities.map((activity) => (
                     <li key={`${activity.type}-${activity.id}`}>
@@ -720,7 +715,9 @@ function FarmerDashboardPage() {
 
             <section className="dashboard-panel farmer-farms-panel">
               <div className="panel-title-row"><div><span className="panel-kicker">REGISTERED LAND</span><h2>My farms</h2></div><span className="activity-count">{dashboard?.farms?.length || 0}</span></div>
-              {dashboard?.farms?.length ? (
+              {loading && !dashboard ? (
+                <div className="farmer-list-empty">Loading farm records…</div>
+              ) : dashboard?.farms?.length ? (
                 <ul className="farmer-record-list">
                   {dashboard.farms.map((farm, index) => (
                     <li key={`${farm.farm_name || farm.location_description || 'farm'}-${index}`}>
@@ -737,7 +734,9 @@ function FarmerDashboardPage() {
 
             <section className="dashboard-panel farmer-harvest-panel">
               <div className="panel-title-row"><div><span className="panel-kicker">LATEST RECORDS</span><h2>My recent harvests</h2></div><span className="activity-count">{dashboard?.recentHarvests?.length || 0}</span></div>
-              {dashboard?.recentHarvests?.length ? (
+              {loading && !dashboard ? (
+                <div className="farmer-list-empty">Loading harvest records…</div>
+              ) : dashboard?.recentHarvests?.length ? (
                 <ul className="farmer-record-list">
                   {dashboard.recentHarvests.map((harvest, index) => (
                     <li key={`${harvest.harvested_on}-${harvest.crop_name}-${index}`}>
