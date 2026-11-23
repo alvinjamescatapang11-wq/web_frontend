@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const TOKEN_KEY = 'agritrack_access_token';
 const USER_KEY = 'agritrack_user';
+const AUTH_REQUEST_TIMEOUT_MS = 60000;
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/',
@@ -31,7 +32,9 @@ api.interceptors.response.use(
 
 export const authApi = {
   async login(credentials) {
-    const response = await api.post('/api/auth/login', credentials);
+    const response = await api.post('/api/auth/login', credentials, {
+      timeout: AUTH_REQUEST_TIMEOUT_MS,
+    });
     const { accessToken, user } = response.data.data;
     window.sessionStorage.setItem(TOKEN_KEY, accessToken);
     this.cacheUser(user);
